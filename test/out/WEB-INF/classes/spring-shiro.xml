@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.0.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+    <description>Shiro安全配置</description>
+
+    <aop:aspectj-autoproxy proxy-target-class="true" />
+
+    <context:component-scan base-package="com"></context:component-scan>
+
+    <!--securityManager是shiro的核心，初始化时协调各个模块运行-->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="userRealm"/>
+        <!-- 使用下面配置的缓存管理器 -->
+        <property name="cacheManager" ref="shiroEhcacheManager"/>
+        <property name="sessionManager" ref="sessionManager" />
+    </bean>
+
+    <bean id="sessionDAO" class="org.apache.shiro.session.mgt.eis.MemorySessionDAO" />
+    <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <property name="sessionDAO" ref="sessionDAO" />
+    </bean>
+    <!--自定义realm，判断subject是否可以登录及权限等-->
+    <bean id="userRealm" class="com.shiro.UserRealm" />
+
+    <!--Shiro过滤器配置，bean的id必须和web.xml中的filter-name一致-->
+    <bean id="shiroFilter" name = "shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager" />
+        <property name="loginUrl" value="/login.jspp" />
+        <property name="successUrl" value="/success.jsp" />
+        <property name="unauthorizedUrl" value="/error/error.jsp" />
+        <property name="filterChainDefinitions">
+            <value>
+                <!--anon表示匿名访问（即不需要登录也能访问）-->
+                <!--authc表示需要身份认证通过后才能访问-->
+                <!--role表示需要有admin权限才能访问-->
+
+                /login.jsp* = anon
+                /error/error.jsp = anon
+                /*.jsp* = authc
+            </value>
+        </property>
+    </bean>
+
+
+
+    <!--用户授权/认证信息cache，采用EhCache缓存-->
+    <bean id="shiroEhcacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+        <!--<property name="cacheManagerConfigFile" value="classpath*:ehcache-shiro.xml" />-->
+        <property name="cacheManagerConfigFile" value="classpath:ehcache-shiro.xml" />
+    </bean>
+
+    <!--保证实现了Shiro内部lifecycle函数的bean执行-->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+</beans>
